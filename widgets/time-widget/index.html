@@ -8,18 +8,35 @@
 </head>
 <body class="bg-white flex items-center justify-center min-h-screen">
     <div class="text-center">
+        <div id="greeting" class="text-2xl font-medium text-gray-600 mb-4">
+            Hello, Daniel
+        </div>
         <div id="time" class="text-7xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 font-mono tracking-wider">
             00:00:00
         </div>
     </div>
 
     <script>
+        function getGreeting(hour) {
+            if (hour >= 5 && hour < 12) {
+                return "Good morning, Daniel";
+            } else if (hour >= 12 && hour < 17) {
+                return "Good afternoon, Daniel";
+            } else if (hour >= 17 && hour < 21) {
+                return "Good evening, Daniel";
+            } else {
+                return "Good night, Daniel";
+            }
+        }
+
         function updateTime() {
             const now = new Date();
-            const hours = String(now.getHours()).padStart(2, '0');
+            const hours = now.getHours();
+            const hoursStr = String(hours).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
             const seconds = String(now.getSeconds()).padStart(2, '0');
-            document.getElementById('time').textContent = `${hours}:${minutes}:${seconds}`;
+            document.getElementById('time').textContent = `${hoursStr}:${minutes}:${seconds}`;
+            document.getElementById('greeting').textContent = getGreeting(hours);
         }
 
         updateTime();
