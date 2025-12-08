@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shopping Widget</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-white flex items-center justify-center min-h-screen">
+    <div class="text-center">
+        <div id="datetime" class="text-2xl font-medium text-gray-600 mb-4">
+            4pm on Monday
+        </div>
+        <div class="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500 py-[2px]">
+            What are we cooking up today?
+        </div>
+    </div>
+
+    <script>
+        function getTimeOfDay(hour) {
+            if (hour >= 5 && hour < 12) {
+                return 'morning';
+            } else if (hour >= 12 && hour < 17) {
+                return 'afternoon';
+            } else if (hour >= 17 && hour < 21) {
+                return 'evening';
+            } else {
+                return 'night';
+            }
+        }
+
+        function updateDateTime() {
+            const now = new Date();
+            const hours = now.getHours();
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const dayName = days[now.getDay()];
+            const timeOfDay = getTimeOfDay(hours);
+
+            document.getElementById('datetime').textContent = "It's " + dayName + ' ' + timeOfDay + "!";
+        }
+
+        updateDateTime();
+        setInterval(updateDateTime, 60000);
+    </script>
+</body>
+</html>
