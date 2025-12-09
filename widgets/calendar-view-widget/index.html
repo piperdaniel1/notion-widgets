@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendar Events</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-white min-h-screen p-2 sm:p-4 flex items-center justify-center">
+    <div class="w-full max-w-md mx-auto">
+        <!-- Loading View -->
+        <div id="loadingView">
+            <div class="text-center py-4 sm:py-8">
+                <div class="animate-spin rounded-full h-8 w-8 sm:h-10 sm:w-10 border-b-2 border-purple-500 mx-auto mb-3 sm:mb-4"></div>
+                <p class="text-gray-500 text-sm sm:text-base">Loading...</p>
+            </div>
+        </div>
+
+        <!-- Main Content View -->
+        <div id="contentView" class="hidden">
+            <!-- Events List -->
+            <div id="eventsList" class="space-y-1.5 sm:space-y-2 mb-3 sm:mb-4"></div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="hidden text-center py-4 sm:py-6">
+                <p class="text-gray-400 text-sm sm:text-base">No events for this day</p>
+            </div>
+
+            <!-- Inline Add Event Form -->
+            <div class="border-t pt-3 sm:pt-4 mt-3 sm:mt-4">
+                <form id="addEventForm" class="flex flex-col sm:flex-row gap-2 sm:items-end">
+                    <div class="flex-1">
+                        <label for="eventName" class="block text-xs font-medium text-gray-500 mb-1">Event</label>
+                        <input
+                            type="text"
+                            id="eventName"
+                            name="name"
+                            required
+                            class="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400"
+                            placeholder="Event name"
+                        >
+                    </div>
+                    <div class="flex gap-2">
+                        <div class="flex-1 sm:flex-none sm:w-28">
+                            <label for="eventTime" class="block text-xs font-medium text-gray-500 mb-1">Time</label>
+                            <input
+                                type="time"
+                                id="eventTime"
+                                name="time"
+                                required
+                                class="w-full px-2 py-1.5 sm:py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400"
+                            >
+                        </div>
+                        <button
+                            type="submit"
+                            id="addBtn"
+                            class="px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-medium rounded-lg hover:opacity-90 transition-opacity self-end"
+                        >
+                            Add
+                        </button>
+                    </div>
+                </form>
+                <p id="formMessage" class="text-xs text-red-500 mt-2 hidden"></p>
+            </div>
+        </div>
+
+        <!-- Error View -->
+        <div id="errorView" class="hidden text-center py-4 sm:py-8">
+            <p class="text-red-500 text-sm sm:text-base mb-2">Failed to load events</p>
+            <button
+                id="retryBtn"
+                class="text-purple-500 hover:text-purple-700 underline text-sm sm:text-base"
+            >
+                Try again
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let eventsData = null;
+        let databaseId = null;
+
+        // Get day of week from URL param (1-7, Monday-Sunday)
+        const urlParams = new URLSearchParams(window.location.search);
+        const dayParam = parseInt(urlParams.get('day')) || 1;
+
+        // DOM Elements
+        const loadingView = document.getElementById('loadingView');
+        const contentView = document.getElementById('contentView');
+        const errorView = document.getElementById('errorView');
+        const eventsList = document.getElementById('eventsList');
+        const emptyState = document.getElementById('emptyState');
+        const addEventForm = document.getElementById('addEventForm');
+        const formMessage = document.getElementById('formMessage');
+        const addBtn = document.getElementById('addBtn');
+
+        // Show view
+        function showView(view) {
+            loadingView.classList.add('hidden');
+            contentView.classList.add('hidden');
+            errorView.classList.add('hidden');
+
+            if (view === 'loading') loadingView.classList.remove('hidden');
+            if (view === 'content') contentView.classList.remove('hidden');
+            if (view === 'error') errorView.classList.remove('hidden');
+        }
+
+        // Build Notion URL for opening an event
+        function getNotionUrl(pageId) {
+            return `https://notion.so/${databaseId}?p=${pageId}`;
+        }
+
+        // Render events list
+        function renderEvents(events) {
+            eventsList.innerHTML = '';
+
+            if (events.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+
+            events.forEach(event => {
+                const eventEl = document.createElement('div');
+                eventEl.className = 'flex items-center p-2 sm:p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors';
+                eventEl.onclick = () => window.open(getNotionUrl(event.id), '_blank');
+
+                const timeDisplay = event.time || 'All day';
+
+                eventEl.innerHTML = `
+                    <span class="text-purple-600 font-medium text-xs sm:text-sm w-16 sm:w-20 flex-shrink-0">${timeDisplay}</span>
+                    <span class="text-gray-700 text-sm sm:text-base truncate">${event.name}</span>
+                `;
+
+                eventsList.appendChild(eventEl);
+            });
+        }
+
+        // Fetch events from API
+        async function fetchEvents() {
+            showView('loading');
+
+            try {
+                const response = await fetch(`/.netlify/functions/calendar-get-events?day=${dayParam}`);
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch events');
+                }
+
+                const data = await response.json();
+                eventsData = data.events;
+                databaseId = data.databaseId;
+
+                renderEvents(eventsData);
+                showView('content');
+            } catch (error) {
+                console.error('Error fetching events:', error);
+                showView('error');
+            }
+        }
+
+        // Add event form submission
+        addEventForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const name = document.getElementById('eventName').value.trim();
+            const time = document.getElementById('eventTime').value;
+
+            if (!name) return;
+
+            addBtn.disabled = true;
+            addBtn.textContent = '...';
+            formMessage.classList.add('hidden');
+
+            try {
+                const response = await fetch('/.netlify/functions/calendar-add-event', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, time, day: dayParam })
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error || 'Failed to add event');
+                }
+
+                // Clear form and refresh events
+                addEventForm.reset();
+                await fetchEvents();
+            } catch (error) {
+                formMessage.textContent = error.message;
+                formMessage.classList.remove('hidden');
+            } finally {
+                addBtn.disabled = false;
+                addBtn.textContent = 'Add';
+            }
+        });
+
+        // Retry button
+        document.getElementById('retryBtn').addEventListener('click', fetchEvents);
+
+        // Initial load
+        fetchEvents();
+    </script>
+</body>
+</html>
