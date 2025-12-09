@@ -133,7 +133,7 @@
                 eventEl.className = 'flex items-center p-2 sm:p-3 bg-white rounded-lg hover:bg-gray-50 cursor-pointer transition-colors';
                 eventEl.onclick = () => window.open(getNotionUrl(event.id), '_blank');
 
-                const timeDisplay = event.time || 'All day';
+                const timeDisplay = event.time;
 
                 eventEl.innerHTML = `
                     <span class="text-purple-600 font-medium text-xs sm:text-sm w-16 sm:w-20 flex-shrink-0">${timeDisplay}</span>
