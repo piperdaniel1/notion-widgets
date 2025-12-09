@@ -6,8 +6,8 @@
     <title>Calendar Events</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-white min-h-screen p-2 sm:p-4 flex items-center justify-center">
-    <div class="w-full max-w-md mx-auto">
+<body class="min-h-screen p-2 sm:p-4 flex items-center justify-center">
+    <div class="w-full">
         <!-- Loading View -->
         <div id="loadingView">
             <div class="text-center py-4 sm:py-8">
@@ -81,9 +81,15 @@
         let eventsData = null;
         let databaseId = null;
 
-        // Get day of week from URL param (1-7, Monday-Sunday)
+        // Get params from URL
         const urlParams = new URLSearchParams(window.location.search);
         const dayParam = parseInt(urlParams.get('day')) || 1;
+        const bgParam = urlParams.get('bg');
+
+        // Apply background color if provided
+        if (bgParam) {
+            document.body.style.backgroundColor = `#${bgParam}`;
+        }
 
         // DOM Elements
         const loadingView = document.getElementById('loadingView');
@@ -124,7 +130,7 @@
 
             events.forEach(event => {
                 const eventEl = document.createElement('div');
-                eventEl.className = 'flex items-center p-2 sm:p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors';
+                eventEl.className = 'flex items-center p-2 sm:p-3 bg-white rounded-lg hover:bg-gray-50 cursor-pointer transition-colors';
                 eventEl.onclick = () => window.open(getNotionUrl(event.id), '_blank');
 
                 const timeDisplay = event.time || 'All day';
