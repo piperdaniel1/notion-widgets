@@ -6,85 +6,57 @@ const notion = new Client({
 });
 
 const databaseId = process.env.NOTION_TIME_TRACKING_DB_ID!;
-
-function getTodayInMST(): string {
-  const now = new Date();
-  const mstOffset = -7;
-  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
-  const mstDate = new Date(utc + 3600000 * mstOffset);
-  return mstDate.toISOString().split("T")[0];
-}
-
-interface TimeEntry {
-  date?: string;
-  hours: number;
-  description: string;
-  notes?: string;
-}
+const widgetPath = "/widgets/add-time-widget/";
 
 export const handler: Handler = async (event) => {
+  console.log("process.env.NOTION_API_KEY", process.env.NOTION_API_KEY);
   if (event.httpMethod !== "POST") {
     return {
       statusCode: 405,
-      body: JSON.stringify({ error: "Method not allowed" }),
+      body: "Method not allowed",
     };
   }
 
   try {
-    const body: TimeEntry = JSON.parse(event.body || "{}");
+    const params = new URLSearchParams(event.body || "");
+    const hours = parseFloat(params.get("hours") || "");
+    const date = params.get("date") || "";
+    const description = params.get("description") || "";
 
-    if (!body.hours || !body.description) {
+    if (!hours || !date || !description) {
       return {
-        statusCode: 400,
-        body: JSON.stringify({ error: "hours and description are required" }),
+        statusCode: 302,
+        headers: { Location: `${widgetPath}?error=missing-fields` },
+        body: "",
       };
     }
 
-    const date = body.date || getTodayInMST();
-
-    const response = await notion.pages.create({
+    await notion.pages.create({
       parent: { database_id: databaseId },
       properties: {
         Date: {
-          date: {
-            start: date,
-          },
+          date: { start: date },
         },
         Hours: {
-          number: body.hours,
+          number: hours,
         },
         Description: {
-          title: [
-            {
-              text: {
-                content: body.description,
-              },
-            },
-          ],
+          title: [{ text: { content: description } }],
         },
-        ...(body.notes && {
-          Notes: {
-            rich_text: [
-              {
-                text: {
-                  content: body.notes,
-                },
-              },
-            ],
-          },
-        }),
       },
     });
 
     return {
-      statusCode: 200,
-      body: JSON.stringify({ success: true, id: response.id }),
+      statusCode: 302,
+      headers: { Location: `${widgetPath}?success=1` },
+      body: "",
     };
   } catch (error) {
     console.error("Error adding row to Notion:", error);
     return {
-      statusCode: 500,
-      body: JSON.stringify({ error: "Failed to add row to Notion" }),
+      statusCode: 302,
+      headers: { Location: `${widgetPath}?error=server` },
+      body: "",
     };
   }
 };

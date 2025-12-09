@@ -12,7 +12,7 @@
             Add Time Entry
         </h1>
 
-        <form id="timeForm" class="space-y-4">
+        <form id="timeForm" class="space-y-4" action="/.netlify/functions/time-tracking-add-row" method="POST">
             <div>
                 <label for="hours" class="block text-sm font-medium text-gray-600 mb-1">Hours</label>
                 <input
@@ -28,31 +28,30 @@
             </div>
 
             <div>
-                <label for="description" class="block text-sm font-medium text-gray-600 mb-1">Description</label>
+                <label for="date" class="block text-sm font-medium text-gray-600 mb-1">Date</label>
                 <input
-                    type="text"
-                    id="description"
-                    name="description"
+                    type="date"
+                    id="date"
+                    name="date"
                     required
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400"
-                    placeholder="What did you work on?"
                 >
             </div>
 
             <div>
-                <label for="notes" class="block text-sm font-medium text-gray-600 mb-1">Notes (optional)</label>
+                <label for="description" class="block text-sm font-medium text-gray-600 mb-1">Description</label>
                 <textarea
-                    id="notes"
-                    name="notes"
-                    rows="3"
+                    id="description"
+                    name="description"
+                    rows="5"
+                    required
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 resize-none"
-                    placeholder="Any additional details..."
+                    placeholder="What did you work on?"
                 ></textarea>
             </div>
 
             <button
                 type="submit"
-                id="submitBtn"
                 class="w-full py-2 px-4 bg-gradient-to-r from-cyan-400 to-blue-500 text-white font-medium rounded-lg hover:opacity-90 transition-opacity"
             >
                 Add Entry
@@ -63,47 +62,25 @@
     </div>
 
     <script>
-        const form = document.getElementById('timeForm');
+        // Prefill date with today's date in local time
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        document.getElementById('date').value = `${year}-${month}-${day}`;
+
+        // Show feedback based on URL params
+        const params = new URLSearchParams(location.search);
         const message = document.getElementById('message');
-        const submitBtn = document.getElementById('submitBtn');
-
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Adding...';
-            message.classList.add('hidden');
-
-            const data = {
-                hours: parseFloat(document.getElementById('hours').value),
-                description: document.getElementById('description').value,
-                notes: document.getElementById('notes').value || undefined
-            };
-
-            try {
-                const response = await fetch('/.netlify/functions/time-tracking-add-row', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-
-                if (response.ok) {
-                    message.textContent = 'Entry added successfully!';
-                    message.className = 'mt-4 text-center text-sm text-green-600';
-                    form.reset();
-                } else {
-                    const err = await response.json();
-                    throw new Error(err.error || 'Failed to add entry');
-                }
-            } catch (error) {
-                message.textContent = error.message;
-                message.className = 'mt-4 text-center text-sm text-red-600';
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Add Entry';
-                message.classList.remove('hidden');
-            }
-        });
+        if (params.has('success')) {
+            message.textContent = 'Entry added successfully!';
+            message.className = 'mt-4 text-center text-sm text-green-600';
+            history.replaceState(null, '', location.pathname);
+        } else if (params.has('error')) {
+            message.textContent = 'Failed to add entry. Please try again.';
+            message.className = 'mt-4 text-center text-sm text-red-600';
+            history.replaceState(null, '', location.pathname);
+        }
     </script>
 </body>
 </html>
