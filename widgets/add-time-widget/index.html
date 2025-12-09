@@ -81,7 +81,7 @@
             };
 
             try {
-                const response = await fetch('/.netlify/functions/time-tracking-add-new-row', {
+                const response = await fetch('/.netlify/functions/time-tracking-add-row', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
