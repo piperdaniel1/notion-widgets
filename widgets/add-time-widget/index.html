@@ -3,84 +3,291 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add Time Entry</title>
+    <title>Time Tracking</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-white flex items-center justify-center min-h-screen">
     <div class="w-full max-w-md p-6">
-        <h1 class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 mb-6 text-center">
-            Add Time Entry
-        </h1>
-
-        <form id="timeForm" class="space-y-4" action="/.netlify/functions/time-tracking-add-row" method="POST">
-            <div>
-                <label for="hours" class="block text-sm font-medium text-gray-600 mb-1">Hours</label>
-                <input
-                    type="number"
-                    id="hours"
-                    name="hours"
-                    step="0.25"
-                    min="0"
-                    required
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400"
-                    placeholder="2.5"
-                >
+        <!-- Dashboard View (Default) -->
+        <div id="dashboardView" class="hidden">
+            <h1 class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 mb-6 text-center">
+                Time Tracking
+            </h1>
+            <div class="bg-gradient-to-r from-cyan-50 to-blue-50 rounded-xl p-6 mb-6">
+                <p class="text-gray-500 text-sm mb-1">Hours logged in <span id="monthName">this month</span></p>
+                <p class="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 to-blue-600">
+                    <span id="monthHours">0</span> hours
+                </p>
             </div>
-
-            <div>
-                <label for="date" class="block text-sm font-medium text-gray-600 mb-1">Date</label>
-                <input
-                    type="date"
-                    id="date"
-                    name="date"
-                    required
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400"
-                >
-            </div>
-
-            <div>
-                <label for="description" class="block text-sm font-medium text-gray-600 mb-1">Description</label>
-                <textarea
-                    id="description"
-                    name="description"
-                    rows="5"
-                    required
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 resize-none"
-                    placeholder="What did you work on?"
-                ></textarea>
-            </div>
-
             <button
-                type="submit"
-                class="w-full py-2 px-4 bg-gradient-to-r from-cyan-400 to-blue-500 text-white font-medium rounded-lg hover:opacity-90 transition-opacity"
+                id="logMoreBtn"
+                class="w-full py-3 px-4 bg-gradient-to-r from-cyan-400 to-blue-500 text-white font-medium rounded-lg hover:opacity-90 transition-opacity"
             >
-                Add Entry
+                Log Time
             </button>
-        </form>
+        </div>
 
-        <div id="message" class="mt-4 text-center text-sm hidden"></div>
+        <!-- Reminder View (after 3pm with no time logged) -->
+        <div id="reminderView" class="hidden">
+            <div class="text-center">
+                <div class="text-5xl mb-4">&#128064;</div>
+                <h1 class="text-xl font-bold text-gray-700 mb-3">
+                    I noticed you haven't logged any time yet today
+                </h1>
+                <p class="text-gray-500 mb-6">Would you like to log it now?</p>
+                <button
+                    id="reminderLogBtn"
+                    class="w-full py-3 px-4 bg-gradient-to-r from-cyan-400 to-blue-500 text-white font-medium rounded-lg hover:opacity-90 transition-opacity"
+                >
+                    Log Time Now
+                </button>
+            </div>
+        </div>
+
+        <!-- Success View (time logged today) -->
+        <div id="successView" class="hidden">
+            <div class="text-center">
+                <div class="text-5xl mb-4">&#127881;</div>
+                <h1 class="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-500 mb-3">
+                    Nicely done!
+                </h1>
+                <p class="text-gray-600 mb-2">You've logged</p>
+                <p class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-500 mb-6">
+                    <span id="todayHours">0</span> hours today
+                </p>
+                <div class="bg-gray-50 rounded-xl p-4 mb-6">
+                    <p class="text-gray-500 text-sm mb-1"><span id="successMonthName">This month</span> total</p>
+                    <p class="text-xl font-semibold text-gray-700"><span id="successMonthHours">0</span> hours</p>
+                </div>
+                <button
+                    id="successLogMoreBtn"
+                    class="w-full py-3 px-4 bg-gradient-to-r from-cyan-400 to-blue-500 text-white font-medium rounded-lg hover:opacity-90 transition-opacity"
+                >
+                    Log More Time
+                </button>
+            </div>
+        </div>
+
+        <!-- Form View -->
+        <div id="formView" class="hidden">
+            <div class="flex items-center mb-6">
+                <button id="backBtn" class="text-gray-400 hover:text-gray-600 mr-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                </button>
+                <h1 class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
+                    Add Time Entry
+                </h1>
+            </div>
+
+            <form id="timeForm" class="space-y-4">
+                <div>
+                    <label for="hours" class="block text-sm font-medium text-gray-600 mb-1">Hours</label>
+                    <input
+                        type="number"
+                        id="hours"
+                        name="hours"
+                        step="0.25"
+                        min="0"
+                        required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                        placeholder="2.5"
+                    >
+                </div>
+
+                <div>
+                    <label for="date" class="block text-sm font-medium text-gray-600 mb-1">Date</label>
+                    <input
+                        type="date"
+                        id="date"
+                        name="date"
+                        required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                    >
+                </div>
+
+                <div>
+                    <label for="description" class="block text-sm font-medium text-gray-600 mb-1">Description</label>
+                    <input
+                        type="text"
+                        id="description"
+                        name="description"
+                        required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                        placeholder="What did you work on?"
+                    >
+                </div>
+
+                <div>
+                    <label for="notes" class="block text-sm font-medium text-gray-600 mb-1">Notes (optional)</label>
+                    <textarea
+                        id="notes"
+                        name="notes"
+                        rows="3"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 resize-none"
+                        placeholder="Any additional details..."
+                    ></textarea>
+                </div>
+
+                <button
+                    type="submit"
+                    id="submitBtn"
+                    class="w-full py-2 px-4 bg-gradient-to-r from-cyan-400 to-blue-500 text-white font-medium rounded-lg hover:opacity-90 transition-opacity"
+                >
+                    Add Entry
+                </button>
+            </form>
+
+            <div id="message" class="mt-4 text-center text-sm hidden"></div>
+        </div>
+
+        <!-- Loading View -->
+        <div id="loadingView" class="hidden">
+            <div class="text-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto mb-4"></div>
+                <p class="text-gray-500">Loading...</p>
+            </div>
+        </div>
     </div>
 
     <script>
-        // Prefill date with today's date in local time
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0');
-        const day = String(today.getDate()).padStart(2, '0');
-        document.getElementById('date').value = `${year}-${month}-${day}`;
+        // State
+        let timeData = null;
+        let currentView = 'loading';
+        const POLL_INTERVAL = 15 * 60 * 1000; // 15 minutes
 
-        // Show feedback based on URL params
-        const params = new URLSearchParams(location.search);
+        // DOM Elements
+        const views = {
+            dashboard: document.getElementById('dashboardView'),
+            reminder: document.getElementById('reminderView'),
+            success: document.getElementById('successView'),
+            form: document.getElementById('formView'),
+            loading: document.getElementById('loadingView')
+        };
+
+        const form = document.getElementById('timeForm');
         const message = document.getElementById('message');
-        if (params.has('success')) {
-            message.textContent = 'Entry added successfully!';
-            message.className = 'mt-4 text-center text-sm text-green-600';
-            history.replaceState(null, '', location.pathname);
-        } else if (params.has('error')) {
-            message.textContent = 'Failed to add entry. Please try again.';
-            message.className = 'mt-4 text-center text-sm text-red-600';
-            history.replaceState(null, '', location.pathname);
+        const submitBtn = document.getElementById('submitBtn');
+        const dateInput = document.getElementById('date');
+
+        // Get local date in YYYY-MM-DD format
+        function getLocalDateString() {
+            const now = new Date();
+            return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
         }
+
+        // Set default date to today (local time)
+        dateInput.value = getLocalDateString();
+
+        // View management
+        function showView(viewName) {
+            Object.values(views).forEach(v => v.classList.add('hidden'));
+            views[viewName].classList.remove('hidden');
+            currentView = viewName;
+        }
+
+        // Determine which view to show based on data and time
+        function determineView() {
+            if (!timeData) {
+                showView('loading');
+                return;
+            }
+
+            const now = new Date();
+            const hour = now.getHours();
+            const isAfter3pm = hour >= 15;
+
+            // Update dashboard data
+            document.getElementById('monthName').textContent = timeData.monthName;
+            document.getElementById('monthHours').textContent = timeData.monthTotalHours;
+
+            if (timeData.todayTotalHours > 0) {
+                // Time logged today - show success view
+                document.getElementById('todayHours').textContent = timeData.todayTotalHours;
+                document.getElementById('successMonthName').textContent = timeData.monthName;
+                document.getElementById('successMonthHours').textContent = timeData.monthTotalHours;
+                showView('success');
+            } else if (isAfter3pm) {
+                // After 3pm with no time logged - show reminder
+                showView('reminder');
+            } else {
+                // Default - show dashboard
+                showView('dashboard');
+            }
+        }
+
+        // Fetch time tracking data
+        async function fetchTimeData() {
+            try {
+                const response = await fetch('/.netlify/functions/time-tracking-get-data');
+                if (response.ok) {
+                    timeData = await response.json();
+                    determineView();
+                } else {
+                    console.error('Failed to fetch time data');
+                    // Show dashboard as fallback
+                    showView('dashboard');
+                }
+            } catch (error) {
+                console.error('Error fetching time data:', error);
+                showView('dashboard');
+            }
+        }
+
+        // Navigation buttons
+        document.getElementById('logMoreBtn').addEventListener('click', () => showView('form'));
+        document.getElementById('reminderLogBtn').addEventListener('click', () => showView('form'));
+        document.getElementById('successLogMoreBtn').addEventListener('click', () => showView('form'));
+        document.getElementById('backBtn').addEventListener('click', () => determineView());
+
+        // Form submission
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Adding...';
+            message.classList.add('hidden');
+
+            const data = {
+                hours: parseFloat(document.getElementById('hours').value),
+                date: document.getElementById('date').value,
+                description: document.getElementById('description').value,
+                notes: document.getElementById('notes').value || undefined
+            };
+
+            try {
+                const response = await fetch('/.netlify/functions/time-tracking-add-row', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    form.reset();
+                    dateInput.value = getLocalDateString();
+                    // Refresh data and show appropriate view
+                    await fetchTimeData();
+                } else {
+                    const err = await response.json();
+                    throw new Error(err.error || 'Failed to add entry');
+                }
+            } catch (error) {
+                message.textContent = error.message;
+                message.className = 'mt-4 text-center text-sm text-red-600';
+                message.classList.remove('hidden');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Add Entry';
+            }
+        });
+
+        // Initial load
+        showView('loading');
+        fetchTimeData();
+
+        // Poll every 15 minutes
+        setInterval(fetchTimeData, POLL_INTERVAL);
     </script>
 </body>
 </html>

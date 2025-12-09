@@ -6,10 +6,8 @@ const notion = new Client({
 });
 
 const databaseId = process.env.NOTION_TIME_TRACKING_DB_ID!;
-const widgetPath = "/widgets/add-time-widget/";
 
 export const handler: Handler = async (event) => {
-  console.log("process.env.NOTION_API_KEY", process.env.NOTION_API_KEY);
   if (event.httpMethod !== "POST") {
     return {
       statusCode: 405,
@@ -18,16 +16,16 @@ export const handler: Handler = async (event) => {
   }
 
   try {
-    const params = new URLSearchParams(event.body || "");
-    const hours = parseFloat(params.get("hours") || "");
-    const date = params.get("date") || "";
-    const description = params.get("description") || "";
+    const body = JSON.parse(event.body || "{}");
+    const hours = parseFloat(body.hours) || 0;
+    const date = body.date || "";
+    const description = body.description || "";
 
     if (!hours || !date || !description) {
       return {
-        statusCode: 302,
-        headers: { Location: `${widgetPath}?error=missing-fields` },
-        body: "",
+        statusCode: 400,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ error: "Missing required fields" }),
       };
     }
 
@@ -47,16 +45,16 @@ export const handler: Handler = async (event) => {
     });
 
     return {
-      statusCode: 302,
-      headers: { Location: `${widgetPath}?success=1` },
-      body: "",
+      statusCode: 200,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ success: true }),
     };
   } catch (error) {
     console.error("Error adding row to Notion:", error);
     return {
-      statusCode: 302,
-      headers: { Location: `${widgetPath}?error=server` },
-      body: "",
+      statusCode: 500,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ error: "Failed to add entry" }),
     };
   }
 };
