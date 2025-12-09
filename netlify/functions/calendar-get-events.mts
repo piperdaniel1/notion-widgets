@@ -21,6 +21,7 @@ interface CalendarEvent {
   id: string;
   name: string;
   time: string;
+  dayOfWeek: string;
   datetime: string;
 }
 
@@ -190,10 +191,14 @@ export const handler: Handler = async (event) => {
         time = startInMST.format("h:mm A");
       }
 
+      // Get day of week abbreviation (e.g., "SAT", "SUN")
+      const dayOfWeek = startInMST.format("ddd").toUpperCase();
+
       events.push({
         id: pageId,
         name,
         time,
+        dayOfWeek,
         datetime: startDatetime,
       });
     }

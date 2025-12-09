@@ -83,8 +83,9 @@
 
         // Get params from URL
         const urlParams = new URLSearchParams(window.location.search);
-        const dayParam = parseInt(urlParams.get('day')) || 1;
+        const dayParam = urlParams.get('day') || '1';
         const bgParam = urlParams.get('bg');
+        const isMultiDay = dayParam.includes(',');
 
         // Apply background color if provided
         if (bgParam) {
@@ -133,10 +134,12 @@
                 eventEl.className = 'flex items-center p-2 sm:p-3 bg-white rounded-lg hover:bg-gray-50 cursor-pointer transition-colors';
                 eventEl.onclick = () => window.open(getNotionUrl(event.id), '_blank');
 
-                const timeDisplay = event.time;
+                // Show day of week prefix only for multi-day queries
+                const timeDisplay = isMultiDay ? `${event.dayOfWeek} ${event.time}` : event.time;
+                const timeWidth = isMultiDay ? 'w-24 sm:w-28' : 'w-16 sm:w-20';
 
                 eventEl.innerHTML = `
-                    <span class="text-purple-600 font-medium text-xs sm:text-sm w-16 sm:w-20 flex-shrink-0">${timeDisplay}</span>
+                    <span class="text-purple-600 font-medium text-xs sm:text-sm ${timeWidth} flex-shrink-0">${timeDisplay}</span>
                     <span class="text-gray-700 text-sm sm:text-base truncate">${event.name}</span>
                 `;
 
