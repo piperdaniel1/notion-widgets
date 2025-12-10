@@ -10,8 +10,13 @@
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/timezone.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/isoWeek.js"></script>
 </head>
-<body class="flex items-center justify-center h-screen">
-    <div id="dateDisplay" class="text-3xl font-semibold text-black"></div>
+<body class="flex items-center justify-center h-screen relative overflow-hidden">
+    <!-- Two background layers for smooth crossfade transitions -->
+    <div id="bgLayer1" class="absolute inset-0 transition-opacity duration-[60000ms] ease-in-out"></div>
+    <div id="bgLayer2" class="absolute inset-0 transition-opacity duration-[60000ms] ease-in-out opacity-0"></div>
+    <!-- Vignette overlay for rectangular fade to bg color -->
+    <div id="vignetteOverlay" class="absolute inset-0 pointer-events-none z-[5]"></div>
+    <div id="dateDisplay" class="text-3xl font-semibold text-black relative z-10"></div>
 
     <script>
         dayjs.extend(dayjs_plugin_utc);
@@ -24,10 +29,125 @@
         const urlParams = new URLSearchParams(window.location.search);
         const dayParam = urlParams.get('day') || '1';
         const bgParam = urlParams.get('bg');
+        const hourOverride = urlParams.get('hour') !== null ? parseInt(urlParams.get('hour'), 10) : null;
+        const minuteOverride = urlParams.get('minute') !== null ? parseInt(urlParams.get('minute'), 10) : null;
 
-        // Apply background color if provided
+        // Color utility functions
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : null;
+        }
+
+        function rgbToHex(r, g, b) {
+            return '#' + [r, g, b].map(x => {
+                const hex = Math.round(x).toString(16);
+                return hex.length === 1 ? '0' + hex : hex;
+            }).join('');
+        }
+
+        function lerpColor(color1, color2, t) {
+            const c1 = hexToRgb(color1);
+            const c2 = hexToRgb(color2);
+            return rgbToHex(
+                c1.r + (c2.r - c1.r) * t,
+                c1.g + (c2.g - c1.g) * t,
+                c1.b + (c2.b - c1.b) * t
+            );
+        }
+
+        // Normalize gradient to specific number of color stops
+        function normalizeGradient(colors, targetStops) {
+            if (colors.length === targetStops) return colors;
+            const result = [];
+            for (let i = 0; i < targetStops; i++) {
+                const t = i / (targetStops - 1);
+                const srcPos = t * (colors.length - 1);
+                const srcIdx = Math.floor(srcPos);
+                const srcT = srcPos - srcIdx;
+                if (srcIdx >= colors.length - 1) {
+                    result.push(colors[colors.length - 1]);
+                } else {
+                    result.push(lerpColor(colors[srcIdx], colors[srcIdx + 1], srcT));
+                }
+            }
+            return result;
+        }
+
+        // Time zones with their colors (hour is start of zone)
+        const timeZones = [
+            { hour: 0, colors: ['#1a1a2e', '#16213e'] },           // Night
+            { hour: 5, colors: ['#614385', '#f77062', '#ffd194'] }, // Dawn
+            { hour: 7, colors: ['#ffd194', '#a8edea'] },           // Morning
+            { hour: 10, colors: ['#56ccf2', '#a8edea'] },          // Midday
+            { hour: 14, colors: ['#56ccf2', '#a8edea'] },          // Midday
+            { hour: 16, colors: ['#a8edea', '#ffecd2', '#fcb69f'] }, // Golden hour
+            { hour: 17, colors: ['#e96443', '#904e95', '#1a1a2e'] }, // Sunset
+            { hour: 19, colors: ['#1a1a2e', '#16213e'] },          // Night again
+        ];
+
+        // Get interpolated gradient based on exact time
+        function getDaylightGradient(hour, minute = 0) {
+            const time = hour + minute / 60;
+
+            // Find current and next zone
+            let currentZone = timeZones[timeZones.length - 1];
+            let nextZone = timeZones[0];
+
+            for (let i = 0; i < timeZones.length - 1; i++) {
+                if (time >= timeZones[i].hour && time < timeZones[i + 1].hour) {
+                    currentZone = timeZones[i];
+                    nextZone = timeZones[i + 1];
+                    break;
+                }
+            }
+
+            // Calculate interpolation factor (0-1) within current zone
+            let zoneDuration = nextZone.hour - currentZone.hour;
+            if (zoneDuration <= 0) zoneDuration += 24; // Handle day wrap
+            let timeInZone = time - currentZone.hour;
+            if (timeInZone < 0) timeInZone += 24;
+            const t = Math.min(1, Math.max(0, timeInZone / zoneDuration));
+
+            // Normalize both gradients to 3 stops and interpolate
+            const numStops = 3;
+            const currentColors = normalizeGradient(currentZone.colors, numStops);
+            const nextColors = normalizeGradient(nextZone.colors, numStops);
+
+            const interpolatedColors = currentColors.map((color, i) =>
+                lerpColor(color, nextColors[i], t)
+            );
+
+            return `linear-gradient(to bottom, ${interpolatedColors.join(', ')})`;
+        }
+
+        // Background layer elements for crossfade
+        const bgLayer1 = document.getElementById('bgLayer1');
+        const bgLayer2 = document.getElementById('bgLayer2');
+        let activeBgLayer = 1;
+        let lastGradient = null;
+
+        // Apply background with smooth interpolation
+        function updateBackground() {
+            const currentTime = dayjs().tz(MST);
+            // Use overrides for testing, otherwise use actual time
+            const currentHour = hourOverride !== null ? hourOverride : currentTime.hour();
+            const currentMinute = minuteOverride !== null ? minuteOverride : (hourOverride !== null ? 0 : currentTime.minute());
+            const gradient = getDaylightGradient(currentHour, currentMinute);
+
+            // Apply directly to active layer (interpolation handles smoothness)
+            bgLayer1.style.background = gradient;
+        }
+
+        // Apply static background color if provided
         if (bgParam) {
             document.body.style.backgroundColor = `#${bgParam}`;
+            // Set up vignette overlay with rectangular fade from all edges
+            const vignetteOverlay = document.getElementById('vignetteOverlay');
+            vignetteOverlay.style.boxShadow = `inset 0 0 50px 0px #${bgParam}`;
         }
 
         // Parse days
@@ -54,6 +174,14 @@
         // Check if today is included in the displayed dates
         const todayStr = now.format('YYYY-MM-DD');
         const includestoday = targetDates.some(d => d.format('YYYY-MM-DD') === todayStr);
+
+        // Apply daylight background if today is included
+        if (includestoday) {
+            // Initial background
+            updateBackground();
+            // Update every 10 seconds for smooth interpolation
+            setInterval(updateBackground, 10000);
+        }
 
         // Apply styling - highlighted for today, muted for other days
         dateDisplay.classList.add('px-3', 'py-1', 'rounded-lg');
