@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Day Display</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/utc.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/timezone.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/isoWeek.js"></script>
+</head>
+<body class="flex items-center justify-center h-screen">
+    <div id="dateDisplay" class="text-2xl font-semibold text-black"></div>
+
+    <script>
+        dayjs.extend(dayjs_plugin_utc);
+        dayjs.extend(dayjs_plugin_timezone);
+        dayjs.extend(dayjs_plugin_isoWeek);
+
+        const MST = "America/Denver";
+
+        // Get params from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const dayParam = urlParams.get('day') || '1';
+        const bgParam = urlParams.get('bg');
+
+        // Apply background color if provided
+        if (bgParam) {
+            document.body.style.backgroundColor = `#${bgParam}`;
+        }
+
+        // Parse days
+        const days = dayParam.split(',').map(d => parseInt(d.trim(), 10)).filter(d => d >= 1 && d <= 7);
+        const isMultiDay = days.length > 1;
+
+        // Get the dates using same logic as calendar-view-widget
+        const now = dayjs().tz(MST);
+        const currentDayOfWeek = now.isoWeekday();
+
+        // Only roll forward if ALL days have passed
+        const anyDayNotPassed = days.some(d => d >= currentDayOfWeek);
+        const targetDates = days.map(d => {
+            let target = now.isoWeekday(d);
+            if (!anyDayNotPassed) {
+                target = target.add(1, 'week');
+            }
+            return target;
+        });
+
+        // Format the display
+        const dateDisplay = document.getElementById('dateDisplay');
+
+        if (isMultiDay) {
+            // Get first and last dates (by actual date order, not input order)
+            const sortedDates = [...targetDates].sort((a, b) => a.valueOf() - b.valueOf());
+            const firstDate = sortedDates[0];
+            const lastDate = sortedDates[sortedDates.length - 1];
+
+            // Format: "Sat Dec 21 - Sun Dec 22"
+            dateDisplay.textContent = `${firstDate.format('ddd MMM D')} - ${lastDate.format('ddd MMM D')}`;
+        } else {
+            // Single day: "Tuesday Dec 21"
+            dateDisplay.textContent = targetDates[0].format('dddd MMM D');
+        }
+    </script>
+</body>
+</html>
