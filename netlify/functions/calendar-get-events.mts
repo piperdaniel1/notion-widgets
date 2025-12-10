@@ -61,9 +61,19 @@ export const handler: Handler = async (event) => {
       }
     }
 
-    // Get the dates for these days of the current week
+    // Get the dates for these days, rolling to next week only if ALL days have passed
     const now = dayjs().tz(MST);
-    const targetDates = days.map((d) => now.isoWeekday(d));
+    const currentDayOfWeek = now.isoWeekday();
+    // If any day in the group is today or later, keep all days this week
+    const anyDayNotPassed = days.some((d) => d >= currentDayOfWeek);
+    const targetDates = days.map((d) => {
+      let target = now.isoWeekday(d);
+      // Only roll forward if ALL days have passed
+      if (!anyDayNotPassed) {
+        target = target.add(1, "week");
+      }
+      return target;
+    });
 
     // Find the min and max dates for the query range
     const minDate = targetDates.reduce((min, d) => (d.isBefore(min) ? d : min), targetDates[0]);

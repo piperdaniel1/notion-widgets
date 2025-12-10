@@ -57,9 +57,14 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    // Get the date for this day of the current week
+    // Get the date for this day, rolling to next week if the day has passed
     const now = dayjs().tz(MST);
-    const targetDate = now.isoWeekday(day);
+    const currentDayOfWeek = now.isoWeekday();
+    let targetDate = now.isoWeekday(day);
+    // If day is before today in the week, use next week's date
+    if (day < currentDayOfWeek) {
+      targetDate = targetDate.add(1, "week");
+    }
     const dateStr = targetDate.format("YYYY-MM-DD");
 
     // Combine date and time into ISO datetime
