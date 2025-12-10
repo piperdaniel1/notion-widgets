@@ -11,7 +11,7 @@
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/isoWeek.js"></script>
 </head>
 <body class="flex items-center justify-center h-screen">
-    <div id="dateDisplay" class="text-2xl font-semibold text-black"></div>
+    <div id="dateDisplay" class="text-3xl font-semibold text-black"></div>
 
     <script>
         dayjs.extend(dayjs_plugin_utc);
@@ -50,6 +50,18 @@
 
         // Format the display
         const dateDisplay = document.getElementById('dateDisplay');
+
+        // Check if today is included in the displayed dates
+        const todayStr = now.format('YYYY-MM-DD');
+        const includestoday = targetDates.some(d => d.format('YYYY-MM-DD') === todayStr);
+
+        // Apply styling - highlighted for today, muted for other days
+        dateDisplay.classList.add('px-3', 'py-1', 'rounded-lg');
+        if (includestoday) {
+            dateDisplay.classList.add('bg-gradient-to-r', 'from-purple-500', 'to-pink-500', 'text-white');
+        } else {
+            dateDisplay.classList.add('bg-gray-100', 'text-gray-800');
+        }
 
         if (isMultiDay) {
             // Get first and last dates (by actual date order, not input order)
