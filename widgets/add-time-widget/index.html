@@ -38,7 +38,7 @@
                 </button>
                 <button
                     class="downloadBtn px-3 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                    title="Download CSV"
+                    title="Download CSV, Invoice & Hours Log"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -64,7 +64,7 @@
                     </button>
                     <button
                         class="downloadBtn px-3 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                        title="Download CSV"
+                        title="Download CSV, Invoice & Hours Log"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -98,7 +98,7 @@
                     </button>
                     <button
                         class="downloadBtn px-3 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                        title="Download CSV"
+                        title="Download CSV, Invoice & Hours Log"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -323,7 +323,18 @@
             determineView();
         });
 
+        // Helper function to download a blob with a filename
+        function downloadBlob(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
         // Download buttons (multiple instances, one per view)
+        // Downloads all three files: CSV, Invoice PDF, and Hours Log PDF
         document.querySelectorAll('.downloadBtn').forEach(btn => {
             btn.addEventListener('click', async () => {
                 const originalHTML = btn.innerHTML;
@@ -335,16 +346,39 @@
                 </svg>`;
 
                 try {
-                    const response = await fetch('/.netlify/functions/time-tracking-export');
-                    const blob = await response.blob();
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'time-tracking.csv';
-                    a.click();
-                    URL.revokeObjectURL(url);
+                    // Fetch all three files in parallel
+                    const [csvResponse, invoiceResponse, hoursLogResponse] = await Promise.all([
+                        fetch('/.netlify/functions/time-tracking-export'),
+                        fetch('/.netlify/functions/time-tracking-generate-docs?type=invoice'),
+                        fetch('/.netlify/functions/time-tracking-generate-docs?type=hours-log')
+                    ]);
+
+                    // Check for errors
+                    if (!csvResponse.ok) throw new Error('Failed to fetch CSV');
+                    if (!invoiceResponse.ok) throw new Error('Failed to fetch Invoice PDF');
+                    if (!hoursLogResponse.ok) throw new Error('Failed to fetch Hours Log PDF');
+
+                    // Get blobs
+                    const [csvBlob, invoiceBlob, hoursLogBlob] = await Promise.all([
+                        csvResponse.blob(),
+                        invoiceResponse.blob(),
+                        hoursLogResponse.blob()
+                    ]);
+
+                    // Extract filenames from Content-Disposition headers, or use defaults
+                    const csvFilename = csvResponse.headers.get('Content-Disposition')?.match(/filename="(.+)"/)?.[1] || 'time-tracking.csv';
+                    const invoiceFilename = invoiceResponse.headers.get('Content-Disposition')?.match(/filename="(.+)"/)?.[1] || 'invoice.pdf';
+                    const hoursLogFilename = hoursLogResponse.headers.get('Content-Disposition')?.match(/filename="(.+)"/)?.[1] || 'hours-log.pdf';
+
+                    // Trigger all three downloads with a small delay between each
+                    // (some browsers may block rapid successive downloads)
+                    downloadBlob(csvBlob, csvFilename);
+                    setTimeout(() => downloadBlob(invoiceBlob, invoiceFilename), 100);
+                    setTimeout(() => downloadBlob(hoursLogBlob, hoursLogFilename), 200);
+
                 } catch (error) {
                     console.error('Download failed:', error);
+                    alert('Download failed: ' + error.message);
                 } finally {
                     btn.innerHTML = originalHTML;
                     btn.disabled = false;

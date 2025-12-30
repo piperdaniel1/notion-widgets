@@ -23,13 +23,13 @@ export const handler: Handler = async (event) => {
 
   try {
     const body = JSON.parse(event.body || "{}");
-    const hours = parseFloat(body.hours) || 0;
+    const hours = parseFloat(body.hours);
     const date = body.date || "";
     const description = body.description || "";
     const notes = body.notes || "";
     const entryId = body.entryId || null;
 
-    if (!hours || !date || !description) {
+    if (isNaN(hours) || !date || !description) {
       return {
         statusCode: 400,
         headers: jsonHeaders,

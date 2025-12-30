@@ -12,7 +12,8 @@
   "dependencies": {
     "@netlify/functions": "^5.1.1",
     "@notionhq/client": "^5.4.0",
-    "dayjs": "^1.11.19"
+    "dayjs": "^1.11.19",
+    "pdf-lib": "^1.17.1"
   },
   "devDependencies": {
     "@types/node": "^24.10.2",
