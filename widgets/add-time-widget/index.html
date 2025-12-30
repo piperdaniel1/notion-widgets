@@ -63,7 +63,7 @@
                     id="successLogMoreBtn"
                     class="w-full py-3 px-4 bg-gradient-to-r from-cyan-400 to-blue-500 text-white font-medium rounded-lg hover:opacity-90 transition-opacity"
                 >
-                    Log More Time
+                    Edit Today's Time
                 </button>
             </div>
         </div>
@@ -76,7 +76,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                     </svg>
                 </button>
-                <h1 class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
+                <h1 id="formTitle" class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
                     Add Time Entry
                 </h1>
             </div>
@@ -103,7 +103,8 @@
                         id="date"
                         name="date"
                         required
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                        readonly
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 bg-gray-50"
                     >
                 </div>
 
@@ -135,7 +136,7 @@
                     id="submitBtn"
                     class="w-full py-2 px-4 bg-gradient-to-r from-cyan-400 to-blue-500 text-white font-medium rounded-lg hover:opacity-90 transition-opacity"
                 >
-                    Add Entry
+                    Save Entry
                 </button>
             </form>
 
@@ -166,6 +167,7 @@
         // State
         let timeData = null;
         let currentView = 'loading';
+        let currentEntryId = null; // Store the entry ID when editing
         const POLL_INTERVAL = 15 * 60 * 1000; // 15 minutes
 
         // DOM Elements
@@ -181,6 +183,10 @@
         const message = document.getElementById('message');
         const submitBtn = document.getElementById('submitBtn');
         const dateInput = document.getElementById('date');
+        const formTitle = document.getElementById('formTitle');
+        const hoursInput = document.getElementById('hours');
+        const descriptionInput = document.getElementById('description');
+        const notesInput = document.getElementById('notes');
 
         // Get local date in YYYY-MM-DD format
         function getLocalDateString() {
@@ -246,11 +252,46 @@
             }
         }
 
+        // Function to prepare form for create or edit
+        function prepareForm(isEdit = false) {
+            const todayStr = getLocalDateString();
+            dateInput.value = todayStr;
+            
+            if (isEdit && timeData?.todayEntry) {
+                // Pre-populate form with existing entry data
+                currentEntryId = timeData.todayEntryId;
+                hoursInput.value = timeData.todayEntry.hours || '';
+                descriptionInput.value = timeData.todayEntry.description || '';
+                notesInput.value = timeData.todayEntry.notes || '';
+                formTitle.textContent = "Edit Today's Entry";
+                submitBtn.textContent = 'Update Entry';
+            } else {
+                // Clear form for new entry
+                currentEntryId = null;
+                form.reset();
+                dateInput.value = todayStr;
+                formTitle.textContent = "Add Time Entry";
+                submitBtn.textContent = 'Save Entry';
+            }
+        }
+
         // Navigation buttons
-        document.getElementById('logMoreBtn').addEventListener('click', () => showView('form'));
-        document.getElementById('reminderLogBtn').addEventListener('click', () => showView('form'));
-        document.getElementById('successLogMoreBtn').addEventListener('click', () => showView('form'));
-        document.getElementById('backBtn').addEventListener('click', () => determineView());
+        document.getElementById('logMoreBtn').addEventListener('click', () => {
+            prepareForm(false);
+            showView('form');
+        });
+        document.getElementById('reminderLogBtn').addEventListener('click', () => {
+            prepareForm(false);
+            showView('form');
+        });
+        document.getElementById('successLogMoreBtn').addEventListener('click', () => {
+            prepareForm(true);
+            showView('form');
+        });
+        document.getElementById('backBtn').addEventListener('click', () => {
+            currentEntryId = null;
+            determineView();
+        });
 
         // Download button
         document.getElementById('downloadBtn').addEventListener('click', () => {
@@ -262,15 +303,21 @@
             e.preventDefault();
 
             submitBtn.disabled = true;
-            submitBtn.textContent = 'Adding...';
+            const isEdit = currentEntryId !== null;
+            submitBtn.textContent = isEdit ? 'Updating...' : 'Saving...';
             message.classList.add('hidden');
 
             const data = {
-                hours: parseFloat(document.getElementById('hours').value),
-                date: document.getElementById('date').value,
-                description: document.getElementById('description').value,
-                notes: document.getElementById('notes').value || undefined
+                hours: parseFloat(hoursInput.value),
+                date: dateInput.value,
+                description: descriptionInput.value,
+                notes: notesInput.value || undefined
             };
+
+            // Include entryId if editing
+            if (currentEntryId) {
+                data.entryId = currentEntryId;
+            }
 
             try {
                 const response = await fetch('/.netlify/functions/time-tracking-add-row', {
@@ -280,13 +327,14 @@
                 });
 
                 if (response.ok) {
+                    currentEntryId = null;
                     form.reset();
                     dateInput.value = getLocalDateString();
                     // Refresh data and show appropriate view
                     await fetchTimeData();
                 } else {
                     const err = await response.json();
-                    throw new Error(err.error || 'Failed to add entry');
+                    throw new Error(err.error || 'Failed to save entry');
                 }
             } catch (error) {
                 message.textContent = error.message;
@@ -294,7 +342,7 @@
                 message.classList.remove('hidden');
             } finally {
                 submitBtn.disabled = false;
-                submitBtn.textContent = 'Add Entry';
+                submitBtn.textContent = isEdit ? 'Update Entry' : 'Save Entry';
             }
         });
 

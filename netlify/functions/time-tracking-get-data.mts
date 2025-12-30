@@ -71,6 +71,8 @@ export const handler: Handler = async (event) => {
     const entries: TimeEntry[] = [];
     let todayTotalHours = 0;
     let monthTotalHours = 0;
+    let todayEntryId: string | null = null;
+    let todayEntry: { hours: number; description: string; notes: string } | null = null;
 
     for (const page of response.results) {
       if (!("properties" in page)) continue;
@@ -79,17 +81,24 @@ export const handler: Handler = async (event) => {
         Date?: { date?: { start?: string } };
         Hours?: { number?: number };
         Description?: { title?: Array<{ plain_text?: string }> };
+        Notes?: { rich_text?: Array<{ plain_text?: string }> };
       };
 
       const date = properties.Date?.date?.start || "";
       const hours = properties.Hours?.number || 0;
       const description = properties.Description?.title?.[0]?.plain_text || "";
+      const notes = properties.Notes?.rich_text?.[0]?.plain_text || "";
 
       entries.push({ date, hours, description });
       monthTotalHours += hours;
 
       if (date === todayStr) {
         todayTotalHours += hours;
+        // Store the first entry for today (should only be one per day)
+        if (!todayEntryId) {
+          todayEntryId = page.id;
+          todayEntry = { hours, description, notes };
+        }
       }
     }
 
@@ -104,6 +113,8 @@ export const handler: Handler = async (event) => {
         todayTotalHours,
         monthTotalHours,
         monthName: today.format("MMMM"),
+        todayEntryId,
+        todayEntry,
       }),
     };
   } catch (error) {
