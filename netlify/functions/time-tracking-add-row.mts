@@ -20,6 +20,7 @@ export const handler: Handler = async (event) => {
     const hours = parseFloat(body.hours) || 0;
     const date = body.date || "";
     const description = body.description || "";
+    const notes = body.notes || "";
 
     if (!hours || !date || !description) {
       return {
@@ -29,19 +30,27 @@ export const handler: Handler = async (event) => {
       };
     }
 
+    const properties: any = {
+      Date: {
+        date: { start: date },
+      },
+      Hours: {
+        number: hours,
+      },
+      Description: {
+        title: [{ text: { content: description } }],
+      },
+    };
+
+    if (notes) {
+      properties.Notes = {
+        rich_text: [{ text: { content: notes } }],
+      };
+    }
+
     await notion.pages.create({
       parent: { database_id: databaseId },
-      properties: {
-        Date: {
-          date: { start: date },
-        },
-        Hours: {
-          number: hours,
-        },
-        Description: {
-          title: [{ text: { content: description } }],
-        },
-      },
+      properties,
     });
 
     return {
