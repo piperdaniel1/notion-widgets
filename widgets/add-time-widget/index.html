@@ -19,12 +19,22 @@
                     <span id="monthHours">0</span> hours
                 </p>
             </div>
-            <button
-                id="logMoreBtn"
-                class="w-full py-3 px-4 bg-gradient-to-r from-cyan-400 to-blue-500 text-white font-medium rounded-lg hover:opacity-90 transition-opacity"
-            >
-                Log Time
-            </button>
+            <div class="flex gap-2">
+                <button
+                    id="logMoreBtn"
+                    class="flex-1 py-3 px-4 bg-gradient-to-r from-cyan-400 to-blue-500 text-white font-medium rounded-lg hover:opacity-90 transition-opacity"
+                >
+                    Log Time
+                </button>
+                <button
+                    class="downloadBtn px-3 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                    title="Download CSV"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                </button>
+            </div>
         </div>
 
         <!-- Reminder View (after 3pm with no time logged) -->
@@ -35,12 +45,22 @@
                     I noticed you haven't logged any time yet today
                 </h1>
                 <p class="text-gray-500 mb-6">Would you like to log it now?</p>
-                <button
-                    id="reminderLogBtn"
-                    class="w-full py-3 px-4 bg-gradient-to-r from-cyan-400 to-blue-500 text-white font-medium rounded-lg hover:opacity-90 transition-opacity"
-                >
-                    Log Time Now
-                </button>
+                <div class="flex gap-2">
+                    <button
+                        id="reminderLogBtn"
+                        class="flex-1 py-3 px-4 bg-gradient-to-r from-cyan-400 to-blue-500 text-white font-medium rounded-lg hover:opacity-90 transition-opacity"
+                    >
+                        Log Time Now
+                    </button>
+                    <button
+                        class="downloadBtn px-3 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                        title="Download CSV"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -59,12 +79,22 @@
                     <p class="text-gray-500 text-sm mb-1"><span id="successMonthName">This month</span> total</p>
                     <p class="text-xl font-semibold text-gray-700"><span id="successMonthHours">0</span> hours</p>
                 </div>
-                <button
-                    id="successLogMoreBtn"
-                    class="w-full py-3 px-4 bg-gradient-to-r from-cyan-400 to-blue-500 text-white font-medium rounded-lg hover:opacity-90 transition-opacity"
-                >
-                    Edit Today's Time
-                </button>
+                <div class="flex gap-2">
+                    <button
+                        id="successLogMoreBtn"
+                        class="flex-1 py-3 px-4 bg-gradient-to-r from-cyan-400 to-blue-500 text-white font-medium rounded-lg hover:opacity-90 transition-opacity"
+                    >
+                        Edit Today's Time
+                    </button>
+                    <button
+                        class="downloadBtn px-3 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                        title="Download CSV"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -152,16 +182,6 @@
         </div>
     </div>
 
-    <!-- Download Button (Fixed bottom-right) -->
-    <button
-        id="downloadBtn"
-        class="fixed bottom-4 right-4 p-3 bg-gray-100 hover:bg-gray-200 rounded-full shadow-lg transition-colors"
-        title="Download CSV"
-    >
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-        </svg>
-    </button>
 
     <script>
         // State
@@ -293,9 +313,11 @@
             determineView();
         });
 
-        // Download button
-        document.getElementById('downloadBtn').addEventListener('click', () => {
-            window.location.href = '/.netlify/functions/time-tracking-export';
+        // Download buttons (multiple instances, one per view)
+        document.querySelectorAll('.downloadBtn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                window.location.href = '/.netlify/functions/time-tracking-export';
+            });
         });
 
         // Form submission
